@@ -1,3 +1,9 @@
+# documentation: https://sendy.co/
+# slogan: Sendy ready for Coolify.
+# tags: sendy
+# logo: svgs/your-service.svg
+# port: 443
+version '3.8'
 volumes:
   data_sendy:
     labels:
