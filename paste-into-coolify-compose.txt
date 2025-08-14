@@ -1,0 +1,47 @@
+services:
+  sendy:  
+    image: ghcr.io/wayoflifeapp/sendy-arm64:6.1.3      
+    platform: linux/arm64/v8
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      - SERVICE_FQDN_SENDY_80
+      - 'SENDY_PROTOCOL=${SENDY_PROTOCOL}'
+      - 'SENDY_FQDN=${SENDY_FQDN}'
+      - 'SITE_URL=${SERVICE_FQDN_SENDY}'
+      - MYSQL_HOST=mariadb
+      - 'MYSQL_DATABASE=${MARIADB_DATABASE}'
+      - 'MYSQL_USER=${SERVICE_USER_MARIADB}'
+      - 'MYSQL_PASSWORD=${SERVICE_PASSWORD_MARIADB}'
+      - 'TIMEZONE=${TIMEZONE:-UTC}'
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://127.0.0.1'
+      start_period: 10s
+      interval: 5s
+      timeout: 10s
+      retries: 15
+  mariadb:
+    image: mariadb
+    volumes:
+      - 'mariadb-data:/var/lib/mysql'
+    environment:
+      - 'MARIADB_ROOT_PASSWORD=${SERVICE_PASSWORD_ROOT}'
+      - 'MARIADB_DATABASE=${MARIADB_DATABASE}'
+      - 'MARIADB_USER=${SERVICE_USER_MARIADB}'
+      - 'MARIADB_PASSWORD=${SERVICE_PASSWORD_MARIADB}'
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - '--connect'
+        - '--innodb_initialized'
+      start_period: 10s
+      interval: 5s
+      timeout: 10s
+      retries: 15
+
