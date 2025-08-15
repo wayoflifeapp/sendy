@@ -10,8 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Force lowercase image name:
-  IMAGE_NAME: ${{ toLower(github.repository) }}
+  IMAGE_NAME: ${{ github.repository }}
 
 concurrency:
   group: docker-${{ github.ref }}
