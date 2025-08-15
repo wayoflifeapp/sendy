@@ -2,16 +2,16 @@ name: Build & Push Multi-Platform Image
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
     tags: ["v*"]
-  pull_request:
-    branches: [main, master]
+  release:
+    types: [published]
   workflow_dispatch:
 
 env:
-  # Change these if you want to publish to a different org/name
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }} # e.g. owner/repo
+  # Force lowercase image name:
+  IMAGE_NAME: ${{ toLower(github.repository) }}
 
 concurrency:
   group: docker-${{ github.ref }}
@@ -23,8 +23,8 @@ jobs:
 
     permissions:
       contents: read
-      packages: write # needed for ghcr.io with GITHUB_TOKEN
-      id-token: write # (optional) for provenance/attestations
+      packages: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -35,6 +35,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
 
       # ---- Login (GHCR) ----
       - name: Log in to GHCR
@@ -48,14 +50,21 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # Tag strategies:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
+            # Semantic versioning from tag pushes like v1.2.3
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # Semantic versioning from Release events (pull tag name from the payload)
+            type=semver,pattern={{version}},value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{major}},value=${{ github.event.release.tag_name }},enable=${{ github.event_name == 'release' }}
+            # latest only for stable (tag push starting with v* OR a release whose tag starts with v)
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) }}
+            # edge only on the default branch
+            type=raw,value=edge,enable={{is_default_branch}}
+            # always include a sha tag
             type=sha
 
       - name: Build & Push (multi-arch)
@@ -64,16 +73,10 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }} # build PRs without pushing
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Fast incremental builds:
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Optional: pass build args or target
-          # build-args: |
-          #   FOO=bar
-          # target: production
-          # Optional supply provenance/attestations (requires BuildKit/ID token perms):
           provenance: true
           sbom: true
