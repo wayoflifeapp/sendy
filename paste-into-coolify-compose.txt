@@ -6,11 +6,12 @@ services:
         condition: service_healthy
     environment:
       - SERVICE_FQDN_SENDY_80
-      - 'SENDY_PROTOCOL=${SENDY_PROTOCOL}'
-      - 'SENDY_FQDN=${SENDY_FQDN}'
+      - 'SENDY_PROTOCOL=${SENDY_PROTOCOL:-https}'
+      # The fully qualified domain your license pertains to, without the protocol!
+      - 'SENDY_FQDN=${SENDY_FQDN}' 
       - 'SITE_URL=${SERVICE_FQDN_SENDY}'
-      - MYSQL_HOST=mariadb
-      - 'MYSQL_DATABASE=${MARIADB_DATABASE}'
+      -  MYSQL_HOST=mariadb
+      - 'MYSQL_DATABASE=${MARIADB_DATABASE:-sendy}'
       - 'MYSQL_USER=${SERVICE_USER_MARIADB}'
       - 'MYSQL_PASSWORD=${SERVICE_PASSWORD_MARIADB}'
       - 'TIMEZONE=${TIMEZONE:-UTC}'
