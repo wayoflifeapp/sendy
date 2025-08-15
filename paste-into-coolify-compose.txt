@@ -1,7 +1,6 @@
 services:
   sendy:  
-    image: ghcr.io/wayoflifeapp/sendy-arm64:6.1.3      
-    platform: linux/arm64/v8
+    image: ghcr.io/wayoflifeapp/sendy:latest # or :edge or :x.y.z
     depends_on:
       mariadb:
         condition: service_healthy
